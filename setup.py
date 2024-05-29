@@ -211,6 +211,7 @@ def check_deps():
             print("This script needs to instal those dependencies:")
             for pkg in to_install:
                 print(f"\t{CL_GREEN}{pkg[PKGS_NAME]}{CL_NORM} ({pkg[PKGS_COMMENT]})")
+            print(f"Press {CL_GREY}Ctrl+c{CL_NORM} to skip packages management {CL_GREY}at your own risk{CL_NORM}")
         recheck = False
         auto, manual = chek_can_install(to_install, distro)
         if len(manual) != 0:
