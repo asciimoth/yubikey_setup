@@ -125,6 +125,9 @@ def get_os_info():
     system = platform.system().lower()
     version = platform.version()
     if system == "linux":
+        if "Debian" in version:
+            if os.path.isdir('/etc/tails') and os.path.isdir('/etc/amnesia') and os.getlogin() == "amnesia":
+                return "linux", "tails"
         version = version.split("-")
         if len(version) < 2:
             return system, version[0]
@@ -249,6 +252,7 @@ def check_os():
         return ask("Do your want to continue on current system")
     return True
 
+# Yes, I know about tempfile.TemporaryDirectory
 @contextmanager
 def tmp_dir():
     os.makedirs(TMP_DIR, mode=0o700)
