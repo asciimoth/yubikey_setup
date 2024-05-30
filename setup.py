@@ -42,7 +42,7 @@ PKGS = (
         PKGS_COMMENT: "memory & CPU hard hash function",
         PKGS_CHECK: ("argon2 -h", 1),
         PKGS_ISNTALL: {
-            "tails": "sudo apt install -y argon2",
+            "tails": "sudo apt -qq install -y argon2",
         },
     },
     {
@@ -52,16 +52,16 @@ PKGS = (
         PKGS_ISNTALL: {
             "tails": (
                 "# Adding yubico maintaners GPG keys",
-                "gpg --keyserver hkps://keys.openpgp.org --receive-keys 9E885C0302F9BB9167529C2D5CBA11E6ADC7BCD1",
-                "gpg --keyserver hkps://keys.openpgp.org --receive-keys 57a9deed4c6d962a923bb691816f3ed99921835e",
+                "gpg --quiet --keyserver hkps://keys.openpgp.org --receive-keys 9E885C0302F9BB9167529C2D5CBA11E6ADC7BCD1",
+                "gpg --quiet --keyserver hkps://keys.openpgp.org --receive-keys 57a9deed4c6d962a923bb691816f3ed99921835e",
                 
                 "# Download ykman AppImage",
                 f"mkdir -p {TMP_DIR}/ykman",
-                f"torsocks wget -c -t 0 --retry-connrefused -O {TMP_DIR}/ykman/yubikey-manager-qt.AppImage https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage",
-                f"torsocks wget -c -t 0 --retry-connrefused -O {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage.sig",
+                f"torsocks wget -c -t 0 --retry-connrefused --quiet --show-progress -O {TMP_DIR}/ykman/yubikey-manager-qt.AppImage https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage",
+                f"torsocks wget -c -t 0 --retry-connrefused --quiet --show-progress -O {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage.sig",
                 
                 "# Verify downloaded image",
-                f"gpg --verify {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig",
+                f"gpg --quiet --verify {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig",
 
                 "# Make image executable",
                 f"chmod +x {TMP_DIR}/ykman/yubikey-manager-qt.AppImage",
@@ -74,7 +74,7 @@ PKGS = (
 )
 
 PRE_INSTALL = {
-    "tails": "sudo apt update -y"
+    "tails": "sudo apt -q update -y "
 }
 # Singleton
 PRE_INSTALL_RUNNED = False
@@ -307,6 +307,8 @@ def tmp_dir():
 
 def init():
     if not check_os(): return False
+    # TODO Check that /tmp is inside tmpfs
+    # TODO Check that there is no swaps except zram
     try:
         if not check_deps(): return False
     except KeyboardInterrupt:
