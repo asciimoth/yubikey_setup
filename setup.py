@@ -7,7 +7,7 @@ import shutil
 import secrets
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
-from functools import lru_cache, cmp_to_key
+from functools import lru_cache, cmp_to_key, reduce
 
 
 SCRIPT_NAME = "YUBIKEY_SETUP"
@@ -85,11 +85,20 @@ YES_OR_NO = f"'{CL_GREEN}{YES}{CL_NORM}' or '{CL_RED}{NO}{CL_NORM}'"
 
 WRONG_OS_MSG = f"{CL_RED}Srry, your os is not currently supported by script{CL_NORM}"
 RECOMMEND_OS_MSG = f"{CL_YELLOW}It is strongly recommended to use hardened OS distros to work with this script.\nSuch as {' or '.join(RECOMENDED_DISTROS)}.{CL_NORM}"
-TMPFS_MSG = f"""
-{CL_YELLOW}Your driectory for temporal files (/tmp) does not mount into inmemory filesystem.\nThis can lead to {CL_RED}keys and other secrets leaks{CL_YELLOW}.{CL_NORM}
-It is {CL_YELLOW}highly recommended{CL_NORM} to use special hardened OS such as {CL_GREEN}tails{CL_NORM}. Or at least mount /tmp to tmpfs.
-Anyway, this script will {CL_YELLOW}try{CL_NORM} to remove all temporal files securely. {CL_YELLOW}But sometimes this is not possible.{CL_NORM}
+LEAKS_WARN = f"""
+This can lead to {CL_RED}keys and other secrets leaks{CL_YELLOW}.{CL_NORM}
+It is {CL_YELLOW}highly recommended{CL_NORM} to use special hardened OS such as {CL_GREEN}tails{CL_NORM}.
+Anyway, this script will {CL_YELLOW}try{CL_NORM} to remove all temporal data securely. {CL_YELLOW}But sometimes this is not possible.{CL_NORM}
+Do you want to continue on current setup?
 """.strip()
+TMPFS_MSG = f"""
+{CL_YELLOW}Your driectory for temporal files (/tmp) does not mount into inmemory filesystem.
+{LEAKS_WARN}
+""".rstrip()
+SWAP_MSG = f"""
+{CL_YELLOW}Your system has swap(s) enabled.
+{LEAKS_WARN}
+""".rstrip()
 BEGIN_MSG = """
 << TODO BEGIN MSG >>
 """
@@ -305,18 +314,24 @@ def check_os():
 def check_tmpfs(path):
     path = os.path.abspath(path)
     ops, _ = get_os_info()
-    if ops != "linux":
-        # TODO Add support for other operation systems
-        return True
+    # TODO Add support for other operation systems
+    if ops != "linux": return True
     path_parents = filter(lambda x: path.startswith(x[0]) and x[0] != "",
         map(lambda x: (x.split("% ")[-1], x.split(" ")[0]),
             run_cmd("df", False)[1].decode().split("\n")[1:]))
     fstype = list(sorted(path_parents,
         key=cmp_to_key(lambda a, b: 1-2*int(a[0].startswith(b[0])))))[0][1]
-    if fstype == "tmpfs":
-        return True
-    print(TMPFS_MSG)
-    return ask("Do you want to continue on current setup? ")
+    if fstype == "tmpfs": return True
+    return ask(TMPFS_MSG)
+
+# Check that there is no swaps except zram
+def check_swaps():
+    swaps = run_cmd("swapon --raw --noheadings", False)[1].decode().strip().split("\n")
+    if len(swaps) == 0: return True
+    is_not_zram = lambda x: ("zram" not in x) if isinstance(x, str) else x
+    only_zram = not is_not_zram(reduce(lambda x, y: is_not_zram(x) or is_not_zram(y), swaps))
+    if only_zram: return True
+    return ask(SWAP_MSG)
 
 # Yes, I know about tempfile.TemporaryDirectory
 # I use custom analog cause I'm trying to destroy tmp files
@@ -330,7 +345,7 @@ def tmp_dir():
 def init():
     if not check_os(): return False
     if not check_tmpfs(TMP_DIR): return False
-    # TODO Check that there is no swaps except zram
+    if not check_swaps(): return False
     try:
         if not check_deps(): return False
     except KeyboardInterrupt:
