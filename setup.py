@@ -56,8 +56,8 @@ PKGS = (
                 
                 "# Download ykman AppImage",
                 f"mkdir -p {TMP_DIR}/ykman",
-                f"torsocks curl -L -o {TMP_DIR}/ykman/yubikey-manager-qt.AppImage https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage",
-                f"torsocks curl -L -o {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage.sig",
+                f"torsocks curl -L -o {TMP_DIR}/ykman/yubikey-manager-qt.AppImage https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage --http1.1",
+                f"torsocks curl -L -o {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage.sig --http1.1",
                 
                 "# Verify downloaded image",
                 f"gpg --verify {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig",
