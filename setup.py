@@ -41,7 +41,7 @@ PKGS = (
         PKGS_COMMENT: "memory & CPU hard hash function",
         PKGS_CHECK: "argon2 -h",
         PKGS_ISNTALL: {
-            "tails": "sudo apt install argon2",
+            "tails": "sudo apt install -y argon2",
         },
     },
     {
@@ -51,29 +51,29 @@ PKGS = (
         PKGS_ISNTALL: {
             "tails": (
                 "# Adding yubico maintaners GPG keys",
-                "gpg --keyserver hkps://keys.openpgp.org --search-keys 9E885C0302F9BB9167529C2D5CBA11E6ADC7BCD1",
-                "gpg --keyserver hkps://keys.openpgp.org --search-keys 57a9deed4c6d962a923bb691816f3ed99921835e",
+                "gpg --keyserver hkps://keys.openpgp.org --receive-keys 9E885C0302F9BB9167529C2D5CBA11E6ADC7BCD1",
+                "gpg --keyserver hkps://keys.openpgp.org --receive-keys 57a9deed4c6d962a923bb691816f3ed99921835e",
                 
                 "# Download ykman AppImage",
-                "mkdir -p /tmp/ykman",
-                "torsocks curl -L -o /tmp/ykman/yubikey-manager-qt.AppImage https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage",
-                "torsocks curl -L -o /tmp/ykman/yubikey-manager-qt.AppImage.sig https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage.sig",
+                f"mkdir -p {TMP_DIR}/ykman",
+                f"torsocks curl -L -o {TMP_DIR}/ykman/yubikey-manager-qt.AppImage https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage",
+                f"torsocks curl -L -o {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig https://developers.yubico.com/yubikey-manager-qt/Releases/yubikey-manager-qt-latest-linux.AppImage.sig",
                 
                 "# Verify downloaded image",
-                "gpg --verify /tmp/ykman/yubikey-manager-qt.AppImage.sig",
+                f"gpg --verify {TMP_DIR}/ykman/yubikey-manager-qt.AppImage.sig",
 
                 "# Make image executable",
-                "chmod +x /tmp/ykman/yubikey-manager-qt.AppImage",
+                f"chmod +x {TMP_DIR}/ykman/yubikey-manager-qt.AppImage",
 
                 "# Move image to /bin",
-                "sudo mv /tmp/ykman/yubikey-manager-qt.AppImage /bin/ykman",
+                f"sudo mv {TMP_DIR}/ykman/yubikey-manager-qt.AppImage /bin/ykman",
             ),
         },
     },
 )
 
 PRE_INSTALL = {
-    "tails": "sudo apt update"
+    "tails": "sudo apt update -y"
 }
 # Singleton
 PRE_INSTALL_RUNNED = False
@@ -204,7 +204,6 @@ def check_deps():
     while True:
         to_install = []
         for pkg in PKGS:
-            print(f"check {pkg[PKGS_NAME]}")
             code, _, _ = run_cmd(pkg[PKGS_CHECK], False)
             if code != 0:
                 to_install.append(pkg)
