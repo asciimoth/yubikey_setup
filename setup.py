@@ -168,6 +168,28 @@ def run_cmds(cmds, interactive=True):
             return code
     return 0
 
+# Try to destroy file/dir using GNU Shred
+# If failed for some reason (for example shred does not exist),
+#   delete in the usual way.
+def fs_del(path):
+    if os.path.isdir(path):
+        # Dir
+        # Calls fs_del for all subentities
+        for root, dirs, files in os.walk(path):
+            for dr in dirs:
+                fs_del(os.path.join(root, dr))
+            for file in files:
+                fs_del(os.path.join(root, file))
+    else:
+        # File
+        # Try to shred
+        run_cmd(f"shred -f -u -z {path}", False)
+    # Regualr delete
+    try:
+        shutil.rmtree(path)
+    except FileNotFoundError:
+        pass # Already deleted
+
 # In depend of istalled ykman disribution
 #  there is may be two variants how to run it in cli:
 # 1:
@@ -275,11 +297,13 @@ def check_os():
     return True
 
 # Yes, I know about tempfile.TemporaryDirectory
+# I use custom analog cause I'm trying to destroy tmp files
+#  more securely (using GNU Shred if available) 
 @contextmanager
 def tmp_dir():
     os.makedirs(TMP_DIR, mode=0o700)
     yield TMP_DIR
-    shutil.rmtree(TMP_DIR)
+    fs_del(TMP_DIR)
 
 def init():
     if not check_os(): return False
