@@ -39,7 +39,7 @@ PKGS = (
     {
         PKGS_NAME: "argon2",
         PKGS_COMMENT: "memory & CPU hard hash function",
-        PKGS_CHECK: "argon2 -h",
+        PKGS_CHECK: ("argon2 -h", 1),
         PKGS_ISNTALL: {
             "tails": "sudo apt install -y argon2",
         },
@@ -204,8 +204,14 @@ def check_deps():
     while True:
         to_install = []
         for pkg in PKGS:
-            code, _, _ = run_cmd(pkg[PKGS_CHECK], False)
-            if code != 0:
+            check_cmd, req_code = "", 0
+            if isinstance(pkg[PKGS_CHECK], str):
+                check_cmd = pkg[PKGS_CHECK]
+            else:
+                check_cmd = pkg[PKGS_CHECK][0]
+                req_code  = pkg[PKGS_CHECK][1]
+            code, _, _ = run_cmd(check_cmd, False)
+            if code != req_code:
                 to_install.append(pkg)
         if len(to_install) == 0:
             return True
