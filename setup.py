@@ -7,6 +7,7 @@ import shutil
 import secrets
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
+from functools import lru_cache
 
 
 SCRIPT_NAME = "YUBIKEY_SETUP"
@@ -121,6 +122,7 @@ def ask_execute(cmds):
 # ("linux", None) # Unknown linux disro
 # ("linux", "whonix")
 # ("win", "10")
+@lru_cache(maxsize=None)
 def get_os_info():
     system = platform.system().lower()
     version = platform.version()
@@ -165,6 +167,21 @@ def run_cmds(cmds, interactive=True):
         if code != 0:
             return code
     return 0
+
+# In depend of istalled ykman disribution
+#  there is may be two variants how to run it in cli:
+# 1:
+#   $ ykman ykman
+#   If there is ykman-qt AppImage istalled
+# 2:
+#   $ ykman
+#   If there is ykman cli installed by itself
+# See https://github.com/Yubico/yubikey-manager-qt/pull/293
+@lru_cache(maxsize=None)
+def get_ykman_cmd():
+    if run_cmd("ykman ykman", False) == 0:
+        return "ykman ykman"
+    return "ykman"
 
 def chek_can_install(deps, distro):
     available, not_available = [], []
