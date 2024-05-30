@@ -7,7 +7,7 @@ import shutil
 import secrets
 from contextlib import contextmanager
 from subprocess import Popen, PIPE
-from functools import lru_cache
+from functools import lru_cache, cmp_to_key
 
 
 SCRIPT_NAME = "YUBIKEY_SETUP"
@@ -85,6 +85,11 @@ YES_OR_NO = f"'{CL_GREEN}{YES}{CL_NORM}' or '{CL_RED}{NO}{CL_NORM}'"
 
 WRONG_OS_MSG = f"{CL_RED}Srry, your os is not currently supported by script{CL_NORM}"
 RECOMMEND_OS_MSG = f"{CL_YELLOW}It is strongly recommended to use hardened OS distros to work with this script.\nSuch as {' or '.join(RECOMENDED_DISTROS)}.{CL_NORM}"
+TMPFS_MSG = f"""
+{CL_YELLOW}Your driectory for temporal files (/tmp) does not mount into inmemory filesystem.\nThis can lead to {CL_RED}keys and other secrets leaks{CL_YELLOW}.{CL_NORM}
+It is {CL_YELLOW}highly recommended{CL_NORM} to use special hardened OS such as {CL_GREEN}tails{CL_NORM}. Or at least mount /tmp to tmpfs.
+Anyway, this script will {CL_YELLOW}try{CL_NORM} to remove all temporal files securely. {CL_YELLOW}But sometimes this is not possible.{CL_NORM}
+""".strip()
 BEGIN_MSG = """
 << TODO BEGIN MSG >>
 """
@@ -296,6 +301,23 @@ def check_os():
         return ask("Do your want to continue on current system")
     return True
 
+# Check that path is inside tmpfs
+def check_tmpfs(path):
+    path = os.path.abspath(path)
+    ops, _ = get_os_info()
+    if ops != "linux":
+        # TODO Add support for other operation systems
+        return True
+    path_parents = filter(lambda x: path.startswith(x[0]) and x[0] != "",
+        map(lambda x: (x.split("% ")[-1], x.split(" ")[0]),
+            run_cmd("df", False)[1].decode().split("\n")[1:]))
+    fstype = list(sorted(path_parents,
+        key=cmp_to_key(lambda a, b: 1-2*int(a[0].startswith(b[0])))))[0][1]
+    if fstype == "tmpfs":
+        return True
+    print(TMPFS_MSG)
+    return ask("Do you want to continue on current setup? ")
+
 # Yes, I know about tempfile.TemporaryDirectory
 # I use custom analog cause I'm trying to destroy tmp files
 #  more securely (using GNU Shred if available) 
@@ -307,7 +329,7 @@ def tmp_dir():
 
 def init():
     if not check_os(): return False
-    # TODO Check that /tmp is inside tmpfs
+    if not check_tmpfs(TMP_DIR): return False
     # TODO Check that there is no swaps except zram
     try:
         if not check_deps(): return False
